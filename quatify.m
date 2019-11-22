@@ -1,4 +1,7 @@
-function quatify()
+function [impact,p_value] = quatify(X,Y)
+
+
+end
 
 
 
