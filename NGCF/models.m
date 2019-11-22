@@ -115,7 +115,7 @@ function [R2,resid,varargout] = ANN(X,Y,param)
 if nargin==2
     net = feedforwardnet(10);
     net = train(net,X,Y);
-    R2 = R_Squared(sim(net,X),Y);
+    R2 = index(sim(net,X),Y,1);
 else
     [R2,resid,best_param] = grid_search(X,Y,param,1);
      varargout{1} = best_param;
@@ -128,7 +128,7 @@ function [R2,resid,varargout] = SVR(X,Y,param)
 if nargin==2
     % fit SVM regression
     svr = fitrsvm(X,Y,'Standardize',true,'kernelfunction','gaussian');
-    R2 = R_Squared(svr.resubPredict, Y);
+    R2 = index(svr.resubPredict,Y,1);
 else
     [R2,resid,best_param] = grid_search(X,Y,param,2);
      varargout{1} = best_param;
@@ -193,7 +193,7 @@ if fun==1
         net.trainParam.showWindow = 0;
         % fit BP and get R2 score.
         net = train(net,X',Y');
-        R2_(i) = R_Squared(sim(net,X'),Y');
+        R2_(i) = index(sim(net,X'),Y',1);
         resid_(:,i) = Y'-sim(net,X');
         size(resid_(:,i))
     end
@@ -217,7 +217,7 @@ elseif fun==2
                       struct('AcquisitionFunctionName',...
                       'expected-improvement-plus')); 
         % fit SVR and get R2 score.
-        R2_(i) = R_Squared(svr.resubPredict, Y);
+        R2_(i) = index(svr.resubPredict,Y,1);
         resid_(:,i) = Y-svr.resubPredict;
     end
     toc
@@ -248,4 +248,33 @@ select_nonlinear_index = nonan(nonlinear_index(1:round(pnl*length(nonan))));
 % combine the selected feature
 select_index = union(select_linear_index,select_nonlinear_index);
 
+end
+
+
+function index_rank = rank(X,Y)
+
+NumTrees = 100;
+[n_time,n_feature] = size(X);
+[X,Y] = check_terms(X,Y);
+R2_full = RF(X,Y);
+% y = a(x,w,e,f...)+b; get corresponding R2; 
+% exclude x,w,e,f,etc,respectively; get R2.
+% contrast these R2 value to find the impact of each terms.
+R2 = zeros(n_feature,1);
+%
+for i = 1:n_feature
+    %
+    II = 1:n_feature;
+    II(i) = [];
+    %
+    B = TreeBagger(NumTrees,X(:,II),Y,...
+                   'method','regression',...
+                   'Surrogate','on',...
+                   'OOBPredictorImportance','on',...
+                   'PredictorSelection','curvature');    
+    R2(i) = index(predict(B,X(:,II)),Y,1);  
+end
+    % indexRank means the importance array of predictors.
+    dev_R2 = R2_full - R2;
+    [~,index_rank] = sort(dev_R2,'descend'); 
 end
