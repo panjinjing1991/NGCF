@@ -21,6 +21,10 @@ catch WRONG
     p_value = NaN;
     b(2) = NaN;
 end
+end
+
+
+function [impact,p_value] = quatify(X,Y)
 % qualify
 if ~isnan(b(2))
     %
@@ -36,17 +40,17 @@ if ~isnan(b(2))
                             (PNaN),...
                             0,dispsave);
     %
-    quants = quantile(Sclim_aic+PNaN-nanmean(Sclim_aic+PNaN),...
+    quants = quantile(season_anomaly+PNaN-nanmean(season_anomaly+PNaN),...
                       [0.1 0.25 0.5 0.75 0.9]);    
     % mean S impact in bottom/top 50% of S anomaly
     % (dividing pred_full by pred_baseline works because slagperts
     % has a mean of zero, so it does not change the mean of the prediction)
-    II = find(Sclim_aic + PNaN - nanmean(Sclim_aic+PNaN)...
+    II = find(season_anomaly + PNaN - nanmean(season_anomaly+PNaN)...
               < quants(ceil(length(quants)/2)));
     impact_lowS = nanmean(pred_full(II))./...
                   nanmean(pred_baseline(II));
     %
-    II = find(Sclim_aic + PNaN - nanmean(Sclim_aic+PNaN)...
+    II = find(season_anomaly + PNaN - nanmean(season_anomaly+PNaN)...
               > quants(ceil(length(quants)/2)));
     impact_highS = nanmean(pred_full(II))./...
                    nanmean(pred_baseline(II));
@@ -58,20 +62,45 @@ else
 end
 end
 
-function clim = get_season_anomaly(nSeasonal,X)
+function season_anomaly = get_season_anomaly(nSeasonal,X)
 % seasonal anomaly by method from Tuttle and Savincci[1]
 
 %
-AICPEN = 2;
+aic_penalty = 2;
 N = numel(X);
 %
-index = dec2bin(1:(2^nSeasonal-1));
+season_terms = ;
+% index for all possible regression
+nSeasonal = 5;
+max_dec_index = 2^nSeasonal-1;
+index = dec2bin(1:max_dec_index);
 index = index == '1';
 %
 const = ones(N,1);
-for i = 1:length
+% 
+for i = 1:max_dec_index
     II = find(index(i,:)==1);
+    JJ = 
     
+    [~,dev] = glmfit([const,season_terms(:,JJ)],X,...
+                     'normal',...
+                     'link','identity',...
+                     'estdisp','on',...
+                     'constant','off');
+    aic(i) = AIC(dev,aic_penalty);         
 end
+%find min aic
+[~,ind]=nanmin(aic);
+% fit best model
+[b,~,stats] = glmfit([const,season_terms(:,KK)],X,...
+                     'normal',...
+                     'link','identity',...
+                     'estdisp','on',...
+                     'constant','off');
+% climatology as determined by best AIC seasonal model of S
+clim_ = [const,season_terms(:,KK)]*b;
+% subtract mean S climatology from S
+season_anomaly = X - clim_;
+
 
 end
