@@ -17,10 +17,15 @@ run figure1.m
 ## Code structure
 
 get_terms.m: 
+
 models.m:
+
 causality_test.m:
+
 quatify.m:
+
 figure.m:
+
 index.m:
 
 ## User Agreement
