@@ -1,6 +1,14 @@
 
+function terms = get_terms
+    terms.get_all_terms = @get_all_terms;
+    terms.get_depend_terms = @get_depend_terms;
+    terms.get_lagged_terms = @get_lagged_terms;
+    terms.get_period_terms = @get_period_terms;
+    terms.get_spatial_terms = @get_spatial_terms;
+end
+
 function [depend_terms,lagged_terms,period_terms,spatial_terms] = ...
-          get_terms(data_all,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag)
+          get_all_terms(data_all,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag)
       
 % exclude leap day of leap year
 % 

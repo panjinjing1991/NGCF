@@ -1,5 +1,9 @@
 function [impact,p_value] = quatify(X,Y)
-
+%
+%
+%
+%
+%
 % if x residual close to 0,corresponding offset value close to +-inf.
 % thus this phenomenen should be exclude.
 offsetR = norminv(X);
@@ -21,10 +25,6 @@ catch WRONG
     p_value = NaN;
     b(2) = NaN;
 end
-end
-
-
-function [impact,p_value] = quatify(X,Y)
 % qualify
 if ~isnan(b(2))
     %
@@ -69,18 +69,28 @@ function season_anomaly = get_season_anomaly(nSeasonal,X)
 aic_penalty = 2;
 N = numel(X);
 %
-season_terms = ;
+season_terms = terms.get_period_terms();
 % index for all possible regression
-nSeasonal = 5;
 max_dec_index = 2^nSeasonal-1;
 index = dec2bin(1:max_dec_index);
 index = index == '1';
 %
+map_index = nan(2*nSeasonal,1);
+for j = 1:nSeasonal
+    map_index((j-1)*2+1:(j-1)*2+2) = j;
+end
+%
 const = ones(N,1);
-% 
+%
 for i = 1:max_dec_index
     II = find(index(i,:)==1);
-    JJ = 
+    
+    JJ = zeros(length(map_index),1);
+    for j = 1:length(II)
+        JK = find(map_index==II(i));
+        JJ(JK) = 1;
+    end
+    JJ = find(JJ==1);
     
     [~,dev] = glmfit([const,season_terms(:,JJ)],X,...
                      'normal',...
@@ -91,6 +101,14 @@ for i = 1:max_dec_index
 end
 %find min aic
 [~,ind]=nanmin(aic);
+% 
+II = find(index(ind,:)==1);
+KK = zeros(length(map_index),1);
+for i = 1:length(II)
+    JK = find(map_index==II(i));
+    KK(JK) = 1;
+end
+KK = find(KK==1);
 % fit best model
 [b,~,stats] = glmfit([const,season_terms(:,KK)],X,...
                      'normal',...

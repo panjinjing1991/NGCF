@@ -1,14 +1,10 @@
-function indicator = index(x,y,type)
+function index = index
 
-if type==1
-    indicator = determination_coefficient(x,y);
-elseif type==2
-    indicator = mean_squared_error(x,y);
-elseif type==3
-    indicator = root_mean_squared_error(x,y);
-elseif type==4
-    indicator = mean_average_error(x,y);
-end
+    index.R2 = @determination_coefficient;
+    index.MSE = @mean_squared_error;
+    index.RMSE = @root_mean_squared_error;
+    index.MAE = @mean_average_error;
+    index.AIC = @
 
 end
 
