@@ -9,12 +9,12 @@ It's a method to identify the causal relationship between two variables.
 
 ## Difference of linear and nonlinear Granger causality
 
-run Figure1.m
-
-get 
-![](https://github.com/leelew/NGCF/blob/master/Figure/Figure1.png)
+run figure1.m
+get ![figure1](https://github.com/leelew/NGCF/blob/master/Figure/Figure1.png)
 
 ## Procedure
+
+![Procedure](https://github.com/leelew/NGCF/blob/master/Figure/Figure2.png)
 
 ## User Guide
 
