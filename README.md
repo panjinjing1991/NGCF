@@ -11,7 +11,7 @@ It's a method to identify the causal relationship between two variables.
 
 run Figure1.m
 
-get ![Figure1](https://github.com/leelew/NGCF/blob/master/Figure/Figure1.pdf)
+get ![](https://github.com/leelew/NGCF/blob/master/Figure/Figure1.pdf)
 
 ## Procedure
 
