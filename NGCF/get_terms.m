@@ -1,10 +1,11 @@
+%Code structure
 
-function terms = get_terms
-    terms.get_all_terms = @get_all_terms;
-    terms.get_depend_terms = @get_depend_terms;
-    terms.get_lagged_terms = @get_lagged_terms;
-    terms.get_period_terms = @get_period_terms;
-    terms.get_spatial_terms = @get_spatial_terms;
+function term = get_terms
+    term.get_all_terms = @get_all_terms;
+    term.get_depend_terms = @get_depend_terms;
+    term.get_lagged_terms = @get_lagged_terms;
+    term.get_period_terms = @get_period_terms;
+    term.get_spatial_terms = @get_spatial_terms;
 end
 
 function [depend_terms,lagged_terms,period_terms,spatial_terms] = ...

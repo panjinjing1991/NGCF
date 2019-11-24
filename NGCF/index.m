@@ -4,7 +4,7 @@ function index = index
     index.MSE = @mean_squared_error;
     index.RMSE = @root_mean_squared_error;
     index.MAE = @mean_average_error;
-    index.AIC = @
+    index.AIC = @Akaike_information_criterion;
 
 end
 
@@ -29,6 +29,10 @@ end
 function MAE = mean_average_error(x,y)
 
 MAE = sum(abs(x-y))/numel(y);
+
+end
+
+function AIC = Akaike_information_criterion()
 
 end
 

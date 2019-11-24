@@ -1,9 +1,40 @@
 
-function [R2,resid,varargout] = models(X,Y,fun,type,pl,pnl)
+function model = models
+
+model.run_models = @run_models;
+model.RF = @RF;
+model.SVR = @SVR;
+model.ANN = @ANN;
+model.grid_search = @grid_search;
+model.select_feature = @select_feature;
+
+end
+
+function [R2,resid,varargout] = run_models(X,Y,fun,type,pl,pnl)
 % fit X to Y by machine learning models
 % and adopt two method to handle overfitting.
 % [1] grid search cv.
 % [2] hybrid feature selection method.
+
+% Parameters:
+% __________
+% param:
+% X/Y: target and predict matrix   
+% fun:
+% 1. BP Artificial Neural Network
+% 2. Support vector machine regression
+% 3. Random forest
+% type: if pass parameter 'type' in, 'models' run only regression without any
+% method avoid overfitting.
+% pl/pnl: percent of feature selected by linear and nonlinear method.
+
+% Attributes:
+% __________
+% R2:
+% resid:
+% varargout:
+
+% Copyright (c) Li Lu, 2019
 
 % remove nan row of X,Y
 [X,Y] = check_terms(X,Y);

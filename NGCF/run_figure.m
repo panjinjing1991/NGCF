@@ -1,4 +1,4 @@
-function fig = figure()
+function fig = run_figure()
 
 % figure
 
