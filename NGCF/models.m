@@ -1,3 +1,16 @@
+% This function give several machine learning methods for regression, i.e., 
+% random forest, support vector machine, artificial neural network. and for 
+% these three methods, raise two method to avoid overfitting. i.e., grid search
+% [1] and hybrid feature selection method[2].
+
+% Example: model = models();
+%          model.run_models(X,Y,fun,type,pl,pnl);
+
+% Referrence:
+% [1]:
+% [2]:
+
+% Copyright(c) Li Lu, 2019
 
 function model = models
 
@@ -10,35 +23,49 @@ model.select_feature = @select_feature;
 
 end
 
-function [R2,resid,varargout] = run_models(X,Y,fun,type,pl,pnl)
+function [R2,resid,varargout] = run_models(X,Y,fun,~,pl,pnl)
 % fit X to Y by machine learning models
 % and adopt two method to handle overfitting.
-% [1] grid search cv.
+% [1] grid search.
 % [2] hybrid feature selection method.
 
 % Parameters:
 % __________
-% param:
 % X/Y: target and predict matrix   
 % fun:
-% 1. BP Artificial Neural Network
-% 2. Support vector machine regression
-% 3. Random forest
-% type: if pass parameter 'type' in, 'models' run only regression without any
-% method avoid overfitting.
+    % 1. BP Artificial Neural Network
+    % 2. Support vector machine regression
+    % 3. Random forest
 % pl/pnl: percent of feature selected by linear and nonlinear method.
 
 % Attributes:
 % __________
 % R2:
-% resid:
-% varargout:
+% resid: resid array of selected regression method.
+% varargout: if nargin==4, return 'best_param' of grid search.
 
-% Copyright (c) Li Lu, 2019
+% Example:
+% 1. none 
+%    run_models(X,Y,fun);
+% 2. grid search
+%    run_models(X,Y,fun,~);
+% 3. hybrid feature selection method
+%    run_models(X,Y,fun,~,pl,pnl);
 
 % remove nan row of X,Y
 [X,Y] = check_terms(X,Y);
 if nargin==3
+    % ANN
+    if fun==1
+        [R2,resid] = ANN(X,Y);
+    % SVR    
+    elseif fun==2
+        [R2,resid] = SVR(X,Y);
+    % RF
+    elseif fun==3
+        [R2,resid] = RF(X,Y);
+    end
+elseif nargin==4
     % get param for grid search cv.
     param = get_param(fun);
     % ANN
@@ -52,17 +79,6 @@ if nargin==3
         [R2,resid,best_param] = RF(X,Y,param);
     end
     varargout{1} = best_param;
-elseif nargin==4
-    % ANN
-    if fun==1
-        [R2,resid] = ANN(X,Y);
-    % SVR    
-    elseif fun==2
-        [R2,resid] = SVR(X,Y);
-    % RF
-    elseif fun==3
-        [R2,resid] = RF(X,Y);
-    end
 elseif nargin>4
     % get feature by hybrid feature selection method.
     select_index = select_feature(X,Y,pl,pnl);
@@ -81,20 +97,34 @@ end
 end
 
 function [X,Y] = check_terms(X,Y)
+% remove nan rows both in target and predict matrix
 
 % check y nan terms
 nan_index_Y = find(isnan(Y));
 % check x nan terms
 [nan_index_X,~] = find(isnan(X));
-% 
+% selected x nan rows.
 nan_index_X = unique(nan_index_X);
+% union x,y nan rows.
 nan_index = union(nan_index_X,nan_index_Y);
-%
+% remove nan rows in both x,y
 X(nan_index,:) = []; Y(nan_index) = [];
 
 end
 
 function param = get_param(fun)
+% get parameter cells of three machine learning methods.
+% 1. BP Artificial Neural Network (cell)
+%    - hidlaysize1/hidlaysize2 :[15 30 70][10 20 50]
+%    - max epoch:[10 20 40 90]
+%    - transfer function:{'logsig' 'tansig'}
+%    - train option:{'traingd' 'traingda' 'traingdm' 'traingdx'}
+% 2. Support vector machine regression (cell)
+%    - kernel_function : the name of the kerenl that is to be used, this
+%                        variable must be a string    
+% 3. Random forest
+%    - 
+
 if fun==1
     param = {[15 30 70],...
              [10 20 50],...
@@ -105,10 +135,26 @@ elseif fun==2
     param = {'linear','polynomial','rbf'};
 elseif fun==3
 end
+
 end
 
 function index = kfold_order(N,fold_number)
-%
+% split data into train set and test set in sequence.
+
+% Parameters:
+% __________
+% N: length of data;  
+% fold_number:
+
+% Attributes:
+% __________
+% index: testset index of specific fold_number, 1,2,...,
+%        fold_number in index means trainset index,
+%        the rest index means testset. thus a index array
+%        could construct fold_number pairs of trainset/testset.
+
+% ***attention: only for those data couldn't be messed up.
+
 T = round(N/fold_number);
 %
 index = 1:N;
@@ -121,24 +167,25 @@ end
 end
 
 function [R2,resid,varargout] = RF(X,Y,param)
+% random forest regression
 
 if nargin==2
-    % use complete predictor matrix, and get corresponding
-    % predict array;Rsquared;Important array of predictor;MSE
+    % radom forest class
     NumTrees = 100;
     B = TreeBagger(NumTrees,X,Y,'method','regression','Surrogate','on',...
         'OOBPredictorImportance','on','PredictorSelection','curvature');
-
+    % get important array
     importanceArray = B.OOBPermutedPredictorDeltaError; 
     [~,indexDescend] = sort(importanceArray,'descend');
+    varargout{1} = indexDescend;
+    % get r2 and resid
     resid = Y-predict(B,X);
     R2 = R_Squared(predict(B,X),Y);
-    varargout{1} = indexDescend;
-
 else
     [R2,resid,best_param] = grid_search(X,Y,param,3);
     varargout{1} = best_param;
 end
+
 end
 
 function [R2,resid,varargout] = ANN(X,Y,param)
@@ -180,18 +227,6 @@ function [R2,resid,best_param] = grid_search(X,Y,param,fun)
 % Parameters:
 % __________
 % param:
-% 1. BP Artificial Neural Network
-%    (cell)
-%    - hidlaysize1/hidlaysize2 :[15 30 70][10 20 50]
-%    - max epoch:[10 20 40 90]
-%    - transfer function:{'logsig' 'tansig'}
-%    - train option:{'traingd' 'traingda' 'traingdm' 'traingdx'}
-% 2. Support vector machine regression 
-%    (array as ['linear','polynomial','rbf'])
-%    - kernel_function : the name of the kerenl that is to be used, this
-%                        variable must be a string    
-% 3. Random forest
-%    - 
 % fun:
 % 1. BP Artificial Neural Network
 % 2. Support vector machine regression
