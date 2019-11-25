@@ -96,6 +96,7 @@ end
 
 end
 
+%%
 function [X,Y] = check_terms(X,Y)
 % remove nan rows both in target and predict matrix
 
@@ -166,34 +167,35 @@ for i = 1:fold_number
 end
 end
 
-function [R2,resid,varargout] = RF(X,Y,param)
-% random forest regression
+%% machine learning regression function.
+%
+% Parameters
+% __________
+% X/Y: predict,target variables.
+% param: parameters cell for grid search algorithm
+%
+% Attributes:
+% __________
+% R2: determinate coefficient
+% resid: 
+% varargout: 
 
-if nargin==2
-    % radom forest class
-    NumTrees = 100;
-    B = TreeBagger(NumTrees,X,Y,'method','regression','Surrogate','on',...
-        'OOBPredictorImportance','on','PredictorSelection','curvature');
-    % get important array
-    importanceArray = B.OOBPermutedPredictorDeltaError; 
-    [~,indexDescend] = sort(importanceArray,'descend');
-    varargout{1} = indexDescend;
-    % get r2 and resid
-    resid = Y-predict(B,X);
-    R2 = R_Squared(predict(B,X),Y);
-else
-    [R2,resid,best_param] = grid_search(X,Y,param,3);
-    varargout{1} = best_param;
-end
-
-end
+% Example:
+% 1. none
+%    [R2,resid] = fun(X,Y);
+% 2. grid search
+%    [R2,resid,best_param] = fun(X,Y,param);
 
 function [R2,resid,varargout] = ANN(X,Y,param)
 
 if nargin==2
+    % get net
     net = feedforwardnet(10);
+    % train
     net = train(net,X,Y);
+    % R2 and resid
     R2 = index(sim(net,X),Y,1);
+    resid = Y-sim(net,X);
 else
     [R2,resid,best_param] = grid_search(X,Y,param,1);
      varargout{1} = best_param;
@@ -205,8 +207,12 @@ function [R2,resid,varargout] = SVR(X,Y,param)
 
 if nargin==2
     % fit SVM regression
-    svr = fitrsvm(X,Y,'Standardize',true,'kernelfunction','gaussian');
+    svr = fitrsvm(X,Y,...
+                  'Standardize',true,...
+                  'kernelfunction','gaussian');
+    % R2 and resid
     R2 = index(svr.resubPredict,Y,1);
+    resid = Y-svr.resubPredict;
 else
     [R2,resid,best_param] = grid_search(X,Y,param,2);
      varargout{1} = best_param;
@@ -220,6 +226,33 @@ end
 % epsLoss = kfoldLoss(cv,'lossfun','epsiloninsensitive');
 end
 
+function [R2,resid,varargout] = RF(X,Y,param)
+% random forest regression
+
+if nargin==2
+    % radom forest class
+    NumTrees = 100;
+    B = TreeBagger(NumTrees,...
+                   X,Y,...
+                   'method','regression',...
+                   'Surrogate','on',...
+                   'OOBPredictorImportance','on',...
+                   'PredictorSelection','curvature');
+    % get important array
+    importanceArray = B.OOBPermutedPredictorDeltaError; 
+    [~,index_descend] = sort(importanceArray,'descend');
+    varargout{1} = index_descend;
+    % get r2 and resid
+    resid = Y-predict(B,X);
+    R2 = R_Squared(predict(B,X),Y);
+else
+    [R2,resid,best_param] = grid_search(X,Y,param,3);
+    varargout{1} = best_param;
+end
+
+end
+
+%% avoid overfitting methods
 function [R2,resid,best_param] = grid_search(X,Y,param,fun)
 
 % grid search cv for each input machine learning method
@@ -261,7 +294,6 @@ if fun==1
         net = train(net,X',Y');
         R2_(i) = index(sim(net,X'),Y',1);
         resid_(:,i) = Y'-sim(net,X');
-        size(resid_(:,i))
     end
     % get max R2
     [R2,ind] = max(R2_);
@@ -298,6 +330,18 @@ end
 end
 
 function select_index = select_feature(x,y,pl,pnl)
+% hybrid feature selection method
+% select useful information(i.e.,feature) by appling pearson corr and random
+% forest in order, and get important array of both linear and nonlinear
+% methods. This method may avoid overfitting problem and handle the caculate
+% efficiency problem of nonlinear machine learning method.
+
+% Parameters:
+% __________
+% pl/pnl: percent of selected highly linear and nonlinear feature.
+
+% attention: This method is highly ideally, need to be attentioned further.
+
 
 % use pearson coefficent to select top feature.
 coeff =  abs(corr(x,y));
@@ -305,9 +349,8 @@ coeff =  abs(corr(x,y));
 [~,linear_index] = sort(coeff,'descend','MissingPlacement','last'); 
 % number of NaN coefficent, which means sum of the predictor variable is 0.
 nonan = find(~isnan(coeff));
-% select the top AA feature by pearson coefficent.
+% select the top pl feature by pearson coefficent.
 select_linear_index = linear_index(1:round(pl*length(nonan)));
-
 % use random forest to select top feature.
 [~,~,nonlinear_index] = RF(x(:,nonan),y);
 select_nonlinear_index = nonan(nonlinear_index(1:round(pnl*length(nonan))));
@@ -316,24 +359,34 @@ select_index = union(select_linear_index,select_nonlinear_index);
 
 end
 
-
+%%
 function index_rank = rank(X,Y)
+% give the predict and target variables, remove features in predict
+% variables in order, and get the difference of R2 of full and baseline
+% regression, then use this diff represents the impact of the removed variable.
+% and get the rank of the variable.
 
-NumTrees = 100;
-[n_time,n_feature] = size(X);
-[X,Y] = check_terms(X,Y);
-R2_full = RF(X,Y);
 % y = a(x,w,e,f...)+b; get corresponding R2; 
 % exclude x,w,e,f,etc,respectively; get R2.
 % contrast these R2 value to find the impact of each terms.
+
+% default use random forest regression.
+
+NumTrees = 100;
+[n_time,n_feature] = size(X);
+% remove nan
+[X,Y] = check_terms(X,Y);
+% get R2 using full variables in X.
+R2_full = RF(X,Y);
 R2 = zeros(n_feature,1);
-%
+% loop for all feature
 for i = 1:n_feature
     %
     II = 1:n_feature;
     II(i) = [];
-    %
-    B = TreeBagger(NumTrees,X(:,II),Y,...
+    % 
+    B = TreeBagger(NumTrees,...
+                   X(:,II),Y,...
                    'method','regression',...
                    'Surrogate','on',...
                    'OOBPredictorImportance','on',...
