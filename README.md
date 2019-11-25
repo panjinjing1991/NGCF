@@ -16,6 +16,8 @@ run figure1.m
 
 ## Code structure
 
+main.m
+
 get_terms.m: 
 
 models.m:
@@ -24,7 +26,7 @@ causality_test.m:
 
 quatify.m:
 
-figure.m:
+run_figure.m:
 
 index.m:
 

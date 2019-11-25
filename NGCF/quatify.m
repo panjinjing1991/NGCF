@@ -1,5 +1,5 @@
 % This quaitfy method is from Tuttle and Savicci,2016[1].
-% Their method derived from three steps:
+% This method derived from three steps:
 % (1) regression Y = beta*X+c, and got p value.
 % attention: this part remove the bootstrap method raised by [1] to save time.
 % (2) Use GLM method to seperate dry days and wet days, if anomaly of target day
