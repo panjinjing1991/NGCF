@@ -20,6 +20,7 @@ model.SVR = @SVR;
 model.ANN = @ANN;
 model.grid_search = @grid_search;
 model.select_feature = @select_feature;
+model.rank = @rank;
 
 end
 
@@ -53,7 +54,7 @@ function [R2,resid,varargout] = run_models(X,Y,fun,~,pl,pnl)
 %    run_models(X,Y,fun,~,pl,pnl);
 
 % remove nan row of X,Y
-[X,Y] = check_terms(X,Y);
+[X_,Y_] = check_terms(X,Y);
 if nargin==3
     % ANN
     if fun==1
@@ -81,7 +82,7 @@ elseif nargin==4
     varargout{1} = best_param;
 elseif nargin>4
     % get feature by hybrid feature selection method.
-    select_index = select_feature(X,Y,pl,pnl);
+    select_index = select_feature(X_,Y_,pl,pnl);
     % ANN
     if fun==1
         [R2,resid] = ANN(X(:,select_index),Y);
@@ -243,8 +244,10 @@ if nargin==2
     [~,index_descend] = sort(importanceArray,'descend');
     varargout{1} = index_descend;
     % get r2 and resid
-    resid = Y-predict(B,X);
-    R2 = R_Squared(predict(B,X),Y);
+    resid = Y - predict(B,X);
+
+    indicator = index();
+    R2 = indicator.R2(predict(B,X),Y);
 else
     [R2,resid,best_param] = grid_search(X,Y,param,3);
     varargout{1} = best_param;

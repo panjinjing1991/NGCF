@@ -32,7 +32,9 @@ MAE = sum(abs(x-y))/numel(y);
 
 end
 
-function AIC = Akaike_information_criterion()
+function AIC = Akaike_information_criterion(N,dev,aic_penalty)
+
+AIC = aic_penalty*(N+1)-2*(-dev/2);
 
 end
 

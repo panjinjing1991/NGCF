@@ -1,2 +1,29 @@
-function main()
+function [impact,p_value] = main(P,S,press,...
+                                 lon,lat,...
+                                 startDate,...
+                                 nAnnual,nSeasonal,day_lag,...
+                                 Slen,...
+                                 pbcrit)
+%
+terms = get_terms();
+models = models();
+index = index();
+%
+[depend_P_terms,lagged_P_terms,annualTerm,seasTerm,spatial_P_terms] = ...
+terms.get_all_terms(P,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag);
+[~,lagged_press_terms,~,~,spatial_press_terms] = ...
+terms.get_all_terms(press,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag);
+independ_terms = [lagged_P_terms,lagged_press_terms,...
+                  annualTerm,seasTerm,...
+                  spatial_P_terms,spatial_press_terms];
+
+POCC = 0.*depend_P_terms;
+POCC(find(depend_P_terms>pbcrit))=1;
+S = terms.get_all_terms(S,startDate,113-lat,lon,Slen,nAnnual,nSeasonal,day_lag);
+%%
+[R2P,residP] = models.run_models(independ_terms,POCC,3);
+[R2S,residS] = models.run_models(independ_terms,S,3);
+%%
+season_anomaly = terms.get_season_anomaly(nSeasonal,S,seasTerm);
+[impact,p_value] = quatify(S,residS,POCC,residP,season_anomaly);
 end

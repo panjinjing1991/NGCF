@@ -6,10 +6,11 @@ function term = get_terms
     term.get_lagged_terms = @get_lagged_terms;
     term.get_period_terms = @get_period_terms;
     term.get_spatial_terms = @get_spatial_terms;
+    term.get_season_anomaly = @get_season_anomaly;
 end
 
-function [depend_terms,lagged_terms,period_terms,spatial_terms] = ...
-          get_all_terms(data_all,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag)
+function [depend_terms,lagged_terms,annualTerm,seasTerm,spatial_terms] = ...
+       get_all_terms(data_all,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag)
       
 % exclude leap day of leap year
 % 
@@ -31,15 +32,17 @@ function [depend_terms,lagged_terms,period_terms,spatial_terms] = ...
     
 % set data
 [data_pixel,unleap_day,jd] = remove_leap_day(data_all,startDate,lat,lon);
+disp(jd)
 % get dependent terms
 depend_terms = get_depend_terms(data_pixel,day_lag);
 % get lagged terms
 lagged_terms = get_lagged_terms(data_pixel,day_lag);
 % get period terms
-period_terms = get_period_terms(nAnnual,nSeasonal,jd,data_pixel,day_lag);
+[period_terms,annualTerm,seasTerm] = get_period_terms(nAnnual,nSeasonal,...
+                                                      jd,data_pixel,day_lag);
 % get spatial terms
 spatial_terms = get_spatial_terms(data_all,Slen,lat,lon,jd,day_lag);
-     
+
 end
 
 function depend_terms = get_depend_terms(data,day_lag)
@@ -107,7 +110,7 @@ end
 
 end
 
-function period_terms = ...
+function [period_terms,annualTerm,seasTerm] = ...
          get_period_terms(nAnnual,nSeasonal,jd,data,day_lag)
      
 % Construct periodic terms using Fourier series
@@ -188,7 +191,8 @@ end
 period_terms = [annualTerm,seasTerm];
 % corresponding to the length of lagged_terms.
 period_terms(end-day_lag+1:end,:) = [];
-
+annualTerm(end-day_lag+1:end,:) = [];
+seasTerm(1:day_lag,:) = [];
 end
 
 
@@ -265,5 +269,65 @@ data_index = quantile(data_pixel,[0.01,0.05,0.95,0.99]);
 %         ,length(find(JJ>AA(3))),length(find(JJ>AA(4)))...
 %         1,max([find(JJ>0.1)-1,24-find(JJ>0.1)])];
 % end
+
+end
+
+function season_anomaly = get_season_anomaly(nSeasonal,X,season_terms)
+% seasonal anomaly by method from Tuttle and Savincci[1]
+
+%
+aic_penalty = 2;
+N = numel(X);
+% index for all possible regression
+max_dec_index = 2^nSeasonal-1;
+index_ = dec2bin(1:max_dec_index);
+index_ = index_ == '1';
+%
+map_index = nan(2*nSeasonal,1);
+for j = 1:nSeasonal
+    map_index((j-1)*2+1:(j-1)*2+2) = j;
+end
+%
+const = ones(N,1);
+%
+aic = nan(max_dec_index,1);
+for i = 1:max_dec_index
+    II = find(index_(i,:)==1);
+    
+    JJ = zeros(length(map_index),1);
+    for j = 1:length(II)
+        JK = find(map_index==II(j));
+        JJ(JK) = 1;
+    end
+    JJ = find(JJ==1);
+    
+    [~,dev] = glmfit([const,season_terms(:,JJ)],X,...
+                     'normal',...
+                     'link','identity',...
+                     'estdisp','on',...
+                     'constant','off');
+    indicator = index();
+    aic(i) = indicator.AIC(numel(JJ)+1,dev,aic_penalty);         
+end
+%find min aic
+[~,ind]=nanmin(aic);
+% 
+II = find(index_(ind,:)==1);
+KK = zeros(length(map_index),1);
+for i = 1:length(II)
+    JK = find(map_index==II(i));
+    KK(JK) = 1;
+end
+KK = find(KK==1);
+% fit best model
+[b,~,stats] = glmfit([const,season_terms(:,KK)],X,...
+                     'normal',...
+                     'link','identity',...
+                     'estdisp','on',...
+                     'constant','off');
+% climatology as determined by best AIC seasonal model of S
+clim_ = [const,season_terms(:,KK)]*b;
+% subtract mean S climatology from S
+season_anomaly = X - clim_;
 
 end
