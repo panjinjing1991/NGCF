@@ -1,7 +1,7 @@
-clear all;clc;
+clear all; clc; warning('off');
 %
-load("/work/lilu/Data/NCA-LDAS.mat")
-load("/work/lilu/Data/CONUS_mask.mat")
+load("/work/lilu/NGCF/Data/NCA-LDAS.mat")
+load("/work/lilu/NGCF/Data/CONUS_mask.mat")
 %
 startDate = '2002-06-19';
 nAnnual = 6; nSeasonal = 5; day_lag = 4;
@@ -37,11 +37,11 @@ addAttachedFiles(...
 % that the authors have actually eliminated the impacts of spatial autocorre-
 % lation & heterogeneity, as they stated in lines 181-183.
 result = nan(5,nLon,nLat);
-parfor lon = 120 %1:nLon
-    for lat = 50 %1:nLat
+tic
+parfor lon = 1:nLon
+    for lat = 1:nLat
         valid = CONUS_mask_qdeg(lat,lon)==1 & ~isnan(sum(P(:,lon,lat)));
         if valid
-            'USA'
             %
             tic
             [impact,p_value,R2P,R2S] = main(P,S,press,...
@@ -56,8 +56,9 @@ parfor lon = 120 %1:nLon
         end
     end
 end
+toc
 %
-save('/work/lilu/Result/result_slen_3.mat','-v7.3')
+save('/work/lilu/NGCF/Result/result_slen_3.mat','-v7.3')
 
 
                               

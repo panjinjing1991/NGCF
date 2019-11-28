@@ -260,21 +260,26 @@ if mod(Slen,2)==1
     lon_range = lon-Hlen:lon+Hlen;
     % numbers of pixels in square 
     N = numel(lat_range)*numel(lon_range);
-    % original parameter of pixel around
-    data_ = data(:,lon_range,lat_range);
-    data_around = reshape(data_,[Ntime,N]);
-    data_pixel = data_around(:,(N-1)/2);
-    data_around(:,(N-1)/2) = [];
-    data_all = [data_pixel,data_around];
-    % construct spatial terms
-    spatial_terms = [...
-                     data_around,...
-                     max(data_all,[],2)-min(data_all,[],2),...
-                     sum((data_around-data_pixel).^2,2)...
-                     ];
-    %              
-    spatial_terms = spatial_terms(jd,:);
-    spatial_terms(end-day_lag+1:end,:) = [];
+    % if lat,lon is out of the range
+    if sum(lat_range<1)+sum(lon_range<1)==0
+        % original parameter of pixel around
+        data_ = data(:,lon_range,lat_range);
+        data_around = reshape(data_,[Ntime,N]);
+        data_pixel = data_around(:,(N-1)/2);
+        data_around(:,(N-1)/2) = [];
+        data_all = [data_pixel,data_around];
+        % construct spatial terms
+        spatial_terms = [...
+                         data_around,...
+                         max(data_all,[],2)-min(data_all,[],2),...
+                         sum((data_around-data_pixel).^2,2)...
+                         ];
+        %              
+        spatial_terms = spatial_terms(jd,:);
+        spatial_terms(end-day_lag+1:end,:) = [];
+    else
+        spatial_terms = [];
+    end
 else
     'square of spatial terms must be odd number'
 end

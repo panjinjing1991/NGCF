@@ -65,14 +65,21 @@ independ_terms = [lagged_P_terms,lagged_press_terms,...
 POCC = 0.*depend_P_terms;
 POCC(find(depend_P_terms>pbcrit))=1;
 S = terms.get_all_terms(S,startDate,113-lat,lon,Slen,nAnnual,nSeasonal,day_lag);
-%% models
+%% 
+valid = length(find(~isnan(S)==1))>= round(0.1*length(S)) && ...
+        sum(POCC)>0 && sum(S)~=0;
+% models
+if valid 
 % remove independent terms impact
 [R2P,residP] = model.run_models(independ_terms,POCC,3);
 [R2S,residS] = model.run_models(independ_terms,S,3);
-%% quatify
-season_anomaly = terms.get_season_anomaly(nSeasonal,S,seasTerm);
-[impact,p_value] = quatify(S,residS,POCC,residP,season_anomaly);
-
+% quatify   
+    season_anomaly = terms.get_season_anomaly(nSeasonal,S,seasTerm);
+    [impact,p_value] = quatify(S,residS,POCC,residP,season_anomaly);
+else
+    impact=[nan,nan];p_value=nan;
+    R2P=nan;R2S=nan;residP=nan;residS=nan;season_anomaly=nan;
+end
 % optional output
 if nargout>2; varargout{1} = R2P; end
 if nargout>3; varargout{2} = R2S; end
