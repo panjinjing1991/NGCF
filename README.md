@@ -16,19 +16,17 @@ run figure1.m
 
 ## Code structure
 
-main.m
+main.m: This main.m file is apply nonlinear granger causality framework(NGCF) on identify surface soil moisture-precipitation feedback, including both sign and pattern distribution.
 
-get_terms.m: 
+1. Use get_terms.m to get independent terms, as period terms(i.e., interannual cycle, seasonal cycle); lagged terms(i.e., lagged P and press); spatial terms(i.e., lagged P and press over selected square indicated spatial impact)
 
-models.m:
+2. Run random forest for P occurrence and surface soil moisture as dependent terms, and independent terms metioned in 1., Addtionally, by using hybrid selection feature method to find the 'best' regression(to avoid overfitting in some content). After applying these regression, get the residual value of both surface soil moisture and precipitation.
 
-causality_test.m:
+3. Then, fit "slagperts" to residual of POCC and "offset", using only S with no P on the previous day, and adding lagged atmospheric pressure as independent variable. 
 
-quatify.m:
+4. Use block bootstrap to eliminate endogeneity bias and determine significance of the S coefficient in the regression.(Need improved)
 
-run_figure.m:
-
-index.m:
+5. Calculate S-POCC impacts by dividing the unrestricted model by the restricted model, plotted against the seasonal S anomaly, and taking the mean above and below the median of seasonal anomaly.
 
 ## User Agreement
 
