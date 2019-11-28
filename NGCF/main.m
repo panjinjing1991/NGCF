@@ -49,8 +49,7 @@ function [impact,p_value,varargout] = main(P,S,press,...
 % ***attention: only for S-P feedback and target dataset.                                  
 %% class
 terms = get_terms();
-models = models();
-index = index();
+model = models();
 %% get independent and dependent terms
 % P
 [depend_P_terms,lagged_P_terms,annualTerm,seasTerm,spatial_P_terms] = ...
@@ -68,8 +67,8 @@ POCC(find(depend_P_terms>pbcrit))=1;
 S = terms.get_all_terms(S,startDate,113-lat,lon,Slen,nAnnual,nSeasonal,day_lag);
 %% models
 % remove independent terms impact
-[R2P,residP] = models.run_models(independ_terms,POCC,3);
-[R2S,residS] = models.run_models(independ_terms,S,3);
+[R2P,residP] = model.run_models(independ_terms,POCC,3);
+[R2S,residS] = model.run_models(independ_terms,S,3);
 %% quatify
 season_anomaly = terms.get_season_anomaly(nSeasonal,S,seasTerm);
 [impact,p_value] = quatify(S,residS,POCC,residP,season_anomaly);
