@@ -40,8 +40,7 @@ result = nan(5,nLon,nLat);
 tic
 parfor lon = 1:nLon
     for lat = 1:nLat
-        valid = CONUS_mask_qdeg(lat,lon)==1 & ~isnan(sum(P(:,lon,lat)));
-        if valid
+        if CONUS_mask_qdeg(lat,lon)==1
             %
             tic
             [impact,p_value,R2P,R2S] = main(P,S,press,...

@@ -70,10 +70,10 @@ valid = length(find(~isnan(S)==1))>= round(0.1*length(S)) && ...
         sum(POCC)>0 && sum(S)~=0;
 % models
 if valid 
-% remove independent terms impact
-[R2P,residP] = model.run_models(independ_terms,POCC,3);
-[R2S,residS] = model.run_models(independ_terms,S,3);
-% quatify   
+    % remove independent terms impact
+    [R2P,residP] = model.run_models(independ_terms,POCC,3);
+    [R2S,residS] = model.run_models(independ_terms,S,3);
+    % quatify   
     season_anomaly = terms.get_season_anomaly(nSeasonal,S,seasTerm);
     [impact,p_value] = quatify(S,residS,POCC,residP,season_anomaly);
 else
