@@ -22,7 +22,7 @@ main.m: This main.m file is apply nonlinear granger causality framework(NGCF) on
 
 2. Run random forest for P occurrence and surface soil moisture as dependent terms, and independent terms metioned in 1., Addtionally, by using hybrid selection feature method to find the 'best' regression(to avoid overfitting in some content). After applying these regression, get the residual value of both surface soil moisture and precipitation.
 
-3. Then, fit "slagperts" to residual of POCC and "offset", using only S with no P on the previous day, and adding lagged atmospheric pressure as independent variable. 
+3. Then, fit residual of S to residual of POCC, using only S with no P on the previous day.
 
 4. Use block bootstrap to eliminate endogeneity bias and determine significance of the S coefficient in the regression.(Need improved)
 
