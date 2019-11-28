@@ -58,4 +58,4 @@ parfor lon = 1:nLon
 end
 toc
 %
-save('/work/lilu/NGCF/Result/result_slen_5.mat','-v7.3')
+save('/work/lilu/NGCF/Result/result_slen_5.mat','result','-v7.3')
