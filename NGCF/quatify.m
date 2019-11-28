@@ -10,9 +10,18 @@
 
 function [impact,p_value] = quatify(X,resid_X,Y,resid_Y,season_anomaly)
 %
+% qualify method in [1]
 %
+% Parameters
+% __________
+% - X/Y
+% - resid_X/resid_Y
+% - season_anomaly
 %
-%
+% Attributes
+% - impact
+% - p_value
+
 %
 offsetR = check_rf2glm(Y-resid_Y);
 [b,p_value,dispsave] = reg_rf2glm(resid_X,Y,offsetR);
@@ -55,10 +64,19 @@ end
 end
 
 function [b,p_value,disp] = reg_rf2glm(X,Y,offsetR)
+%
 % function relate random forest regression with glm regression. 
 %
+% Parameters
+% __________
+% - X/Y
+% - offsetR
 %
-% 
+% Attributes
+% - b
+% - p_value
+% - disp
+
 %
 const = ones(numel(Y),1);    %constant term in regression
 % fit
@@ -87,6 +105,7 @@ function X = check_rf2glm(X)
 %
 % if x residual close to 0,corresponding offset value close to +-inf.
 % thus this phenomenen should be exclude.
+
 offsetR = norminv(X);
 offsetR(find(offsetR<-1000 | offsetR>1000)) = NaN;
 
