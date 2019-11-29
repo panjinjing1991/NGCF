@@ -261,7 +261,10 @@ if mod(Slen,2)==1
     % numbers of pixels in square 
     N = numel(lat_range)*numel(lon_range);
     % if lat,lon is out of the range
-    if sum(lat_range<1)+sum(lon_range<1)==0
+    valid = sum(lat_range<1)+sum(lon_range<1)==0 && ...
+            sum(lat_range-112>0)+sum(lon_range-232>0)==0;
+    %
+    if valid 
         % original parameter of pixel around
         data_ = data(:,lon_range,lat_range);
         data_around = reshape(data_,[Ntime,N]);
