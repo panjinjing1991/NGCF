@@ -8,6 +8,7 @@ function term = get_terms
     term.get_period_terms = @get_period_terms;
     term.get_spatial_terms = @get_spatial_terms;
     term.get_season_anomaly = @get_season_anomaly;
+    term.getAnomaly = @getAnomaly;
 end
 
 function [depend_terms,lagged_terms,period_terms,spatial_terms,varargout] = ...
@@ -363,14 +364,14 @@ for i = 1:max_dec_index
         JK = find(map_index==II(j));
         JJ(JK) = 1;
     end
-    JJ = find(JJ==1);   
-    [~,dev] = glmfit([const,season_terms(:,JJ)],X,...
+    JJ1 = find(JJ==1);   
+    [~,dev] = glmfit([const,season_terms(:,JJ1)],X,...
                      'normal',...
                      'link','identity',...
                      'estdisp','on',...
                      'constant','off');
     indicator = index();
-    aic(i) = indicator.AIC(numel(JJ)+1,dev,aic_penalty);         
+    aic(i) = indicator.AIC(numel(JJ1)+1,dev,aic_penalty);         
 end
 %find min aic
 [~,ind]=nanmin(aic);
@@ -394,3 +395,69 @@ clim_ = [const,season_terms(:,KK)]*b;
 season_anomaly = X - clim_;
 
 end
+
+
+function Sclim_aic = getAnomaly(maxseasterms,seasmod,S,N,AICPEN)
+
+
+
+maxind_S=2.^(maxseasterms)-1;
+index_S=dec2bin(1:maxind_S);
+index_S = index_S == '1';
+
+MAP_IND_S=nan(1,2*maxseasterms);
+
+for jj=1:maxseasterms
+    MAP_IND_S((jj-1)*2+1:(jj-1)*2+2)=jj;
+end
+
+aicyrandseas_S=nan(maxind_S,1);
+
+
+one=ones(N,1);
+
+for kk=1:maxind_S
+    
+    clear II PP
+    II=find(index_S(kk,:)==1);
+    
+    PP=zeros(1,length(MAP_IND_S));
+    for ii=1:length(II)
+        JK=find(MAP_IND_S==II(ii)); %+1 is b/c of constant
+        PP(JK)=1;
+    end
+    PP=find(PP==1);
+    
+    [~,dev,~]=...
+        glmfit([one,seasmod(:,PP)],S,'normal',...
+        'link','identity','estdisp','on','constant','off');
+    
+    lenPP=1+length(PP);
+    aicyrandseas_S(kk,1)=AICPEN*(lenPP+1)-2*(-dev/2);
+    
+end
+
+[~,bind_S]=nanmin(aicyrandseas_S);  %find min aic
+
+clear II PP
+
+II=find(index_S(bind_S,:)==1);
+
+PP=zeros(1,length(MAP_IND_S));
+for ii=1:length(II)
+    JK=find(MAP_IND_S==II(ii));
+    PP(JK)=1;
+end
+PP=find(PP==1);
+
+[b_Sseas,~,stats_Sseas]=...
+    glmfit([one,seasmod(:,PP)],S,'normal',...
+    'link','identity','estdisp','on','constant','off');
+
+%climatology as determined by best AIC seasonal model of S
+sclim_9yr_aic=[ones(length(seasmod(:,1)),1),seasmod(:,PP)]*b_Sseas;
+
+%subtract mean S climatology from S
+Sclim_aic=S-sclim_9yr_aic;
+end
+

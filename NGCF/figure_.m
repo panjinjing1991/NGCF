@@ -48,13 +48,13 @@ function [impact_dry,impact_wet] = sign(result)
 % give p_value shape as (nLon,nLat)
 
 %
-impact_dry = squeeze(result(1,:,:));
+impact_dry = squeeze(result(3,:,:));
 impact_wet = squeeze(result(2,:,:));
-p_value = squeeze(result(3,:,:));
+p_value = squeeze(result(1,:,:));
 %
 [nLon,nLat] = size(p_value);
 %
-%impact_dry(find(p_value>0.05))= nan;
-%impact_wet(find(p_value>0.05))= nan;
+impact_dry(find(p_value>0.05))= nan;
+impact_wet(find(p_value>0.05))= nan;
 
 end

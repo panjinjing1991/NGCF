@@ -52,30 +52,35 @@ terms = get_terms();
 model = models();
 %% get independent and dependent terms
 % P
-[depend_P_terms,lagged_P_terms,annualTerm,seasTerm,spatial_P_terms] = ...
+[depend_P_terms,lagged_P_terms,period_terms,spatial_P_terms,annualTerm,seasTerm,~,jd] = ...
 terms.get_all_terms(P,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag);
 % press
-[~,lagged_press_terms,~,~,spatial_press_terms] = ...
+[~,lagged_press_terms,~,spatial_press_terms] = ...
 terms.get_all_terms(press,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag);
 % get independent terms
-independ_terms = [lagged_P_terms,lagged_press_terms,...
-                  annualTerm,seasTerm,...
+independ_terms = [annualTerm,seasTerm,...
+                  lagged_P_terms,lagged_press_terms,...
                   spatial_P_terms,spatial_press_terms];
 % get dependent terms             
 POCC = 0.*depend_P_terms;
 POCC(find(depend_P_terms>pbcrit))=1;
-S = terms.get_all_terms(S,startDate,113-lat,lon,Slen,nAnnual,nSeasonal,day_lag);
+S = terms.get_all_terms(S,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag);
 %% 
 valid = length(find(~isnan(S)==1))>= round(0.1*length(S)) && ...
         sum(POCC)>0 && sum(S)~=0;
 % models
 if valid 
-    % remove independent terms impact
-    [R2P,residP] = model.run_models(independ_terms,POCC,3);
-    [R2S,residS] = model.run_models(independ_terms,S,3);
-    % quatify   
-    season_anomaly = terms.get_season_anomaly(nSeasonal,S,seasTerm);
-    [impact,p_value] = quatify(S,residS,POCC,residP,season_anomaly);
+        try
+        % remove independent terms impact
+        [R2P,residP] = model.run_models(independ_terms,POCC,3,'',0.5,0.5);
+        [R2S,residS] = model.run_models(independ_terms,S,3,'',0.5,0.5);
+        % quatify   
+        season_anomaly = terms.getAnomaly(nSeasonal,seasTerm,S,numel(S),2);
+        [impact,p_value] = quatify(POCC-residP,S-residS,POCC,S,season_anomaly,numel(S));
+        catch
+        impact=[nan,nan];p_value=nan;
+        R2P=nan;R2S=nan;residP=nan;residS=nan;season_anomaly=nan;
+        end
 else
     impact=[nan,nan];p_value=nan;
     R2P=nan;R2S=nan;residP=nan;residS=nan;season_anomaly=nan;
@@ -89,5 +94,7 @@ if nargout>6; varargout{5} = S; end
 if nargout>7; varargout{6} = independ_terms; end
 if nargout>8; varargout{7} = residP; end
 if nargout>9; varargout{8} = residS; end
+if nargout>10; varargout{9} = seasTerm; end
+if nargout>11; varargout{10} = jd; end
 
 end
