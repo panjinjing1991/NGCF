@@ -7,12 +7,10 @@ NGCF is a causal time series MATLAB package. It's a method to identify the causa
 
 ## Difference of linear and nonlinear Granger causality
 
-run figure1.m
-![figure1](https://github.com/leelew/NGCF/blob/master/Figure/Figure1.png)
+run /Script/Figure_1.m
+![figure1](https://github.com/leelew/NGCF/blob/master/Figure/Figure_1.png)
 
 ## Procedure
-
-![Procedure](https://github.com/leelew/NGCF/blob/master/Figure/Figure2.png)
 
 ## Code structure
 
