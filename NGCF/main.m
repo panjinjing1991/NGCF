@@ -39,7 +39,7 @@
 % - impact:
 % - p_value:
 
-function [impact,p_value,varargout] = main(P,S,press,...
+function [p_value,impact,varargout] = main(P,S,press,...
                                            lon,lat,...
                                            startDate,...
                                            nAnnual,nSeasonal,day_lag,...
@@ -50,9 +50,10 @@ function [impact,p_value,varargout] = main(P,S,press,...
 %% class
 terms = get_terms();
 model = models();
+%*** lag_window dayLag = 5:5:25
 %% get independent and dependent terms
 % P
-[depend_P_terms,lagged_P_terms,period_terms,spatial_P_terms,annualTerm,seasTerm,~,jd] = ...
+[depend_P_terms,lagged_P_terms,~,spatial_P_terms,annualTerm,seasTerm,~,jd] = ...
 terms.get_all_terms(P,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag);
 % press
 [~,lagged_press_terms,~,spatial_press_terms] = ...
@@ -64,23 +65,27 @@ independ_terms = [annualTerm,seasTerm,...
 % get dependent terms             
 POCC = 0.*depend_P_terms;
 POCC(find(depend_P_terms>pbcrit))=1;
+%*** POCC(find(depend_P_terms>0.1 & depend_P_terms<1))=1; % light/heavy rain
 S = terms.get_all_terms(S,startDate,lat,lon,Slen,nAnnual,nSeasonal,day_lag);
 %% 
 valid = length(find(~isnan(S)==1))>= round(0.1*length(S)) && ...
         sum(POCC)>0 && sum(S)~=0;
 % models
 if valid 
-        try
+    try
         % remove independent terms impact
         [R2P,residP] = model.run_models(independ_terms,POCC,3,'',0.5,0.5);
         [R2S,residS] = model.run_models(independ_terms,S,3,'',0.5,0.5);
         % quatify   
-        season_anomaly = terms.getAnomaly(nSeasonal,seasTerm,S,numel(S),2);
-        [impact,p_value] = quatify(POCC-residP,S-residS,POCC,S,season_anomaly,numel(S));
-        catch
+        season_anomaly = terms.get_season_anomaly(nSeasonal,seasTerm,S,2);
+        [p_value,impact] = quatify(S-residS,POCC-residP,...
+                                   S,POCC,...
+                                   season_anomaly,...
+                                   'linear');
+    catch
         impact=[nan,nan];p_value=nan;
         R2P=nan;R2S=nan;residP=nan;residS=nan;season_anomaly=nan;
-        end
+    end
 else
     impact=[nan,nan];p_value=nan;
     R2P=nan;R2S=nan;residP=nan;residS=nan;season_anomaly=nan;

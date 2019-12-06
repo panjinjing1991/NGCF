@@ -1,4 +1,3 @@
-%Code structure
 % Copyright(c) Li Lu, 2019
 
 function term = get_terms
@@ -8,16 +7,18 @@ function term = get_terms
     term.get_period_terms = @get_period_terms;
     term.get_spatial_terms = @get_spatial_terms;
     term.get_season_anomaly = @get_season_anomaly;
-    term.getAnomaly = @getAnomaly;
 end
 
-function [depend_terms,lagged_terms,period_terms,spatial_terms,varargout] = ...
-          get_all_terms(data_all,...
-                        startDate,...
-                        lat,lon,...
-                        Slen,...
-                        nAnnual,nSeasonal,day_lag)
-%                   
+function [depend_terms,...
+          lagged_terms,...
+          period_terms,...
+          spatial_terms,...
+          varargout] = get_all_terms(data_all,...
+                                     startDate,...
+                                     lat,lon,...
+                                     Slen,...
+                                     nAnnual,nSeasonal,day_lag)
+%                           
 % exclude leap day of leap year
 % 
 % Parameters:
@@ -35,10 +36,11 @@ function [depend_terms,lagged_terms,period_terms,spatial_terms,varargout] = ...
 % - lagged_terms:
 % - period_terms:
 % - spatial_terms:
-% - annual_terms:
-% - season_terms:
-% - unleap_day:
-% - jd:
+% - varagout:
+    % - annual_terms:
+    % - season_terms:
+    % - unleap_day:
+    % - jd:
     
 % set data
 [data_pixel,unleap_day,jd] = remove_leap_day(data_all,startDate,lat,lon);
@@ -323,141 +325,90 @@ data_index = quantile(data_pixel,[0.01,0.05,0.95,0.99]);
 
 end
 
-function season_anomaly = get_season_anomaly(nSeasonal,...
-                                             X,...
-                                             season_terms)
+function [season_anomaly,varargout] = get_season_anomaly...
+                                      (maxseasterms,seasmod,X,AICPEN)
+
 %
 % seasonal anomaly by method from Tuttle and Savincci[1]
 %
 % Parameters: 
 % __________
-% - nSeasonal: 
+% - maxseasterms: 
+% - seasmod: seasonal terms constructed by get_period_terms()
 % - X: target input array
-% - season_terms: seasonal terms constructed by get_period_terms()
+% - AICPEN:
 %
 % Attributes:
 % __________
 % - season_anomaly: input array removed seasonal average,
 %
-
-% 
-aic_penalty = 2;
 N = numel(X);
 % index for all possible regression
-max_dec_index = 2^nSeasonal-1;
-index_ = dec2bin(1:max_dec_index);
-index_ = index_ == '1';
+maxind_S = 2.^(maxseasterms)-1;
+index_S = dec2bin(1:maxind_S);
+index_S = index_S == '1';
 % map index, each time remove sinx and cosx.
-map_index = nan(2*nSeasonal,1);
-for j = 1:nSeasonal
-    map_index((j-1)*2+1:(j-1)*2+2) = j;
+MAP_IND_S = nan(1,2*maxseasterms);
+%
+for jj = 1:maxseasterms
+    MAP_IND_S((jj-1)*2+1:(jj-1)*2+2) = jj;
 end
 %
-const = ones(N,1);
+aicyrandseas_S = nan(maxind_S,1);
 %
-aic = nan(max_dec_index,1);
-for i = 1:max_dec_index
-    II = find(index_(i,:)==1);
-    
-    JJ = zeros(length(map_index),1);
-    for j = 1:length(II)
-        JK = find(map_index==II(j));
-        JJ(JK) = 1;
+one = ones(N,1);
+%
+for kk = 1:maxind_S
+    clear II PP
+    %
+    II = find(index_S(kk,:)==1);
+    %
+    PP = zeros(1,length(MAP_IND_S));
+    for ii = 1:length(II)
+        JK = find(MAP_IND_S==II(ii)); %+1 is b/c of constant
+        PP(JK) = 1;
     end
-    JJ1 = find(JJ==1);   
-    [~,dev] = glmfit([const,season_terms(:,JJ1)],X,...
-                     'normal',...
-                     'link','identity',...
-                     'estdisp','on',...
-                     'constant','off');
+    PP = find(PP==1);
+    %
+    [~,dev,~] = glmfit([one,seasmod(:,PP)],X,...
+                        'normal',...
+                        'link','identity',...
+                        'estdisp','on',...
+                        'constant','off');
+    %
     indicator = index();
-    aic(i) = indicator.AIC(numel(JJ1)+1,dev,aic_penalty);         
+    aicyrandseas_S(kk,1) = indicator.AIC(1+length(PP),dev,AICPEN);
 end
 %find min aic
-[~,ind]=nanmin(aic);
-% 
-II = find(index_(ind,:)==1);
-KK = zeros(length(map_index),1);
-for i = 1:length(II)
-    JK = find(map_index==II(i));
-    KK(JK) = 1;
-end
-KK = find(KK==1);
-% fit best model
-[b,~,stats] = glmfit([const,season_terms(:,KK)],X,...
-                     'normal',...
-                     'link','identity',...
-                     'estdisp','on',...
-                     'constant','off');
-% climatology as determined by best AIC seasonal model of S
-clim_ = [const,season_terms(:,KK)]*b;
-% subtract mean S climatology from S
-season_anomaly = X - clim_;
-
-end
-
-
-function Sclim_aic = getAnomaly(maxseasterms,seasmod,S,N,AICPEN)
-
-
-
-maxind_S=2.^(maxseasterms)-1;
-index_S=dec2bin(1:maxind_S);
-index_S = index_S == '1';
-
-MAP_IND_S=nan(1,2*maxseasterms);
-
-for jj=1:maxseasterms
-    MAP_IND_S((jj-1)*2+1:(jj-1)*2+2)=jj;
-end
-
-aicyrandseas_S=nan(maxind_S,1);
-
-
-one=ones(N,1);
-
-for kk=1:maxind_S
-    
-    clear II PP
-    II=find(index_S(kk,:)==1);
-    
-    PP=zeros(1,length(MAP_IND_S));
-    for ii=1:length(II)
-        JK=find(MAP_IND_S==II(ii)); %+1 is b/c of constant
-        PP(JK)=1;
-    end
-    PP=find(PP==1);
-    
-    [~,dev,~]=...
-        glmfit([one,seasmod(:,PP)],S,'normal',...
-        'link','identity','estdisp','on','constant','off');
-    
-    lenPP=1+length(PP);
-    aicyrandseas_S(kk,1)=AICPEN*(lenPP+1)-2*(-dev/2);
-    
-end
-
-[~,bind_S]=nanmin(aicyrandseas_S);  %find min aic
-
+[~,bind_S]=nanmin(aicyrandseas_S);
+%
 clear II PP
-
-II=find(index_S(bind_S,:)==1);
-
-PP=zeros(1,length(MAP_IND_S));
-for ii=1:length(II)
-    JK=find(MAP_IND_S==II(ii));
-    PP(JK)=1;
+%
+II = find(index_S(bind_S,:)==1);
+PP = zeros(1,length(MAP_IND_S));
+for ii = 1:length(II)
+    JK = find(MAP_IND_S==II(ii));
+    PP(JK) = 1;
 end
-PP=find(PP==1);
+PP = find(PP==1);
+% fit best model
+[b_Sseas,~,~] = glmfit([one,seasmod(:,PP)],X,...
+                        'normal',...
+                        'link','identity',...
+                        'estdisp','on',...
+                        'constant','off');
+% climatology as determined by best AIC seasonal model of S
+sclim_9yr_aic = [ones(length(seasmod(:,1)),1),seasmod(:,PP)]*b_Sseas;
+% subtract mean S climatology from S
+season_anomaly = X-sclim_9yr_aic;
+% index of dry and wet days.
+IJ = season_anomaly - nanmean(season_anomaly);
+quants = quantile(IJ,[0.1 0.25 0.5 0.75 0.9]);          
+index_dryday = find(IJ < quants(ceil(length(quants)/2)));
+index_wetday = find(IJ > quants(ceil(length(quants)/2)));
+%optional additional outputs
+if nargout>1; varargout{1} = index_dryday; end
+if nargout>2; varargout{2} = index_wetday; end
 
-[b_Sseas,~,stats_Sseas]=...
-    glmfit([one,seasmod(:,PP)],S,'normal',...
-    'link','identity','estdisp','on','constant','off');
-
-%climatology as determined by best AIC seasonal model of S
-sclim_9yr_aic=[ones(length(seasmod(:,1)),1),seasmod(:,PP)]*b_Sseas;
-
-%subtract mean S climatology from S
-Sclim_aic=S-sclim_9yr_aic;
 end
 
