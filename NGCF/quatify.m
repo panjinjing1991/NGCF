@@ -8,7 +8,7 @@
 % coefficient of predict variables as 0) to get the qualify value of X-Y
 % feedback.
 
-function [p_value,impact] = quatify(X_predict,Y_predict,...
+function [p_value,impact,varargout] = quatify(X_predict,Y_predict,...
                                     X,Y,...
                                     season_anomaly,...
                                     type)
@@ -113,6 +113,10 @@ case 'nonlinear'
     impact = [impact_dry,impact_wet]; 
     p_value = nan;
 end
+
+if nargout > 2; varargout{1} = predU_all; end
+if nargout > 3; varargout{2} = predU_baseline; end
+
 end
 
 

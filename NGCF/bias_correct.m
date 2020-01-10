@@ -1,12 +1,19 @@
-%% Block Bootstrap of Regressions
-function bootstrap()
-%
-if isempty(find(isnan(slagperts_filled),1))
-    %estimate block boot length, using automated code from Andrew Patton
-    [aa]=opt_block_length_REV_dec07(slagperts_filled);
-else
-    aa=[90;NaN];
-end
+%% bias-correct
+% TODO: need improved
+% bias-correct of VAR regression models.
+% bias-correction of random forest regression.
+% [1] Bias-corrected random forests in regression.
+%     Journal of Applied Statistics
+
+% Block Bootstrap of linear Regressions
+function bias_correct()
+    %
+    if isempty(find(isnan(X),1))
+        %estimate block boot length, using automated code from Andrew Patton
+        [aa]=opt_block_length_REV_dec07(slagperts_filled);
+    else
+        aa=[90;NaN];
+    end
 if isnan(aa(1))
     aa(1)=90;  %if NaN, set block boot length to 90
 end
@@ -147,33 +154,22 @@ else
 end
 end
 
-
-
-
 function xlag = mlag(x,n,init)
-% PURPOSE: generates a matrix of n lags from a matrix (or vector)
-%          containing a set of vectors (For use in var routines)
-%---------------------------------------------------
-% USAGE:     xlag = mlag(x,nlag)
-%       or: xlag1 = mlag(x), which defaults to 1-lag
-% where: x = a matrix (or vector), nobs x nvar
-%     nlag = # of contiguous lags for each vector in x
-%     init = (optional) scalar value to feed initial missing values
-%            (default = 0)
-%---------------------------------------------------
-% RETURNS:
-%        xlag = a matrix of lags (nobs x nvar*nlag)
-%        x1(t-1), x1(t-2), ... x1(t-nlag), x2(t-1), ... x2(t-nlag) ...
-% --------------------------------------------------
-% SEE ALSO: lag() which works more conventionally
-%---------------------------------------------------
+% """generates a matrix of n lags from a matrix (or vector)
+% containing a set of vectors (For use in var routines)
 
-% written by:
-% James P. LeSage, Dept of Economics
-% University of Toledo
-% 2801 W. Bancroft St,
-% Toledo, OH 43606
-% jpl@jpl.econ.utoledo.edu
+% Arguments:
+%   x -- a matrix (or vector), nobs x nvar
+%   nlag -- # of contiguous lags for each vector in x
+%   init -- (optional) scalar value to feed initial missing values
+%             (default = 0)
+
+% Returns:
+%   xlag -- a matrix of lags (nobs x nvar*nlag)
+%           x1(t-1), x1(t-2), ... x1(t-nlag), x2(t-1), ... x2(t-nlag) ...
+
+% SEE ALSO: lag() which works more conventionally
+% """
 
 if nargin ==1 
     n = 1; % default value
@@ -199,44 +195,33 @@ end
 end
 
 function Bstar = opt_block_length_REV_dec07(data)
-% function Bstar = opt_block_length_REV_dec07(data);
-%
-% This is a function to select the optimal (in the sense
+
+% """This is a function to select the optimal (in the sense
 % of minimising the MSE of the estimator of the long-run
 % variance) block length for the stationary bootstrap or circular bootstrap.
 % Code follows Politis and White, 2001, "Automatic Block-Length
 % Selection for the Dependent Bootstrap".
-%
-%  DECEMBER 2007: CORRECTED TO DEAL WITH ERROR IN LAHIRI'S PAPER, PUBLISHED
-%  BY NORDMAN IN THE ANNALS OF STATISTICS
-%
-%  NOTE:    The optimal average block length for the stationary bootstrap, and it does not need to be an integer. 
-%           The optimal block length for the circular bootstrap should be an integer. Politis and White suggest 
-%               rounding the output UP to the nearest integer.
-%
-% INPUTS:	data, an nxk matrix
-%
-% OUTPUTS:	Bstar, a 2xk vector of optimal bootstrap block lengths, [BstarSB;BstarCB]
-%
-%  Andrew Patton
-%
-%  4 December, 2002
-% 	Revised (to include CB): 13 January, 2003.
-%
-% Helpful suggestions for this code were received from Dimitris Politis and Kevin Sheppard.
-%
-%Modified 23.8.2003 by Kevin Sheppard for speed issues
+
+%  NOTE: The optimal average block length for the stationary bootstrap, 
+%        and it does not need to be an integer.The optimal block length for 
+%        the circular bootstrap should be an integer. Politis and White suggest 
+%        rounding the output UP to the nearest integer.
+
+% Returns:
+%   Bstar, a 2xk vector of optimal bootstrap block lengths, [BstarSB;BstarCB]
+% """
 
 [n,k] = size(data);
 
-% these are optional in opt_block_length_full.m, but fixed at default values here
-KN=max(5,sqrt(log10(n)));
-%mmax = ceil(sqrt(n));
-mmax = ceil(sqrt(n))+KN;           % adding KN extra lags to employ Politis' (2002) suggestion for finding largest signif m
-warning_flags=0;
-round=0;
-%Bmax = sqrt(n);                  % maximum value of Bstar to consider.
-Bmax = ceil(min(3*sqrt(n),n/3));  % dec07: new idea for rule-of-thumb to put upper bound on estimated optimal block length
+% these are optional in opt_block_length_full.m, 
+% but fixed at default values here
+KN = max(5,sqrt(log10(n)));
+% adding KN extra lags to employ Politis' (2002) suggestion 
+% for finding largest signif m
+mmax = ceil(sqrt(n))+KN;    
+% dec07: new idea for rule-of-thumb to 
+% put upper bound on estimated optimal block length
+Bmax = ceil(min(3*sqrt(n),n/3));  
 
 c=2;
 origdata=data;
@@ -264,7 +249,7 @@ for i=1:k
    else
       mhat = temp3(1,1);	% if more than one collection is possible, choose the smallest m
    end
-   if 2*mhat>mmax;
+   if 2*mhat>mmax
       M = mmax;
       trunc1=1;
    else
@@ -276,13 +261,13 @@ for i=1:k
    % SECOND STEP: computing the inputs to the function for Bstar
    kk = (-M:1:M)';
    
-   if M>0;
+   if M>0
       temp = mlag(data,M);
       temp = temp(M+1:end,:);	% dropping the first mmax rows, as they're filled with zeros
       temp = cov([data(M+1:end),temp]);
       acv = temp(:,1);			% autocovariances
       acv2 = [-(1:1:M)',acv(2:end)];
-      if size(acv2,1)>1;
+      if size(acv2,1)>1
          acv2 = sortrows(acv2,1);
       end
       acv = [acv2(:,2);acv];			% autocovariances from -M to M

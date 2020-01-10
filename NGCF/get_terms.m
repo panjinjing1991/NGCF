@@ -1,12 +1,26 @@
+%% get_terms
+%
+% In this module, we get all the terms used for estabilishing regression.
+% including lagged terms (account for short-term persistence effect), period
+% terms (account for long-term periodicty,i.e.,seasonality and annual cycle
+% and trends),spatial terms(account for spatial impact of persistence term),
+% and dependent terms.
+
 % Copyright(c) Li Lu, 2019
 
 function term = get_terms
-    term.get_all_terms = @get_all_terms;
-    term.get_depend_terms = @get_depend_terms;
-    term.get_lagged_terms = @get_lagged_terms;
-    term.get_period_terms = @get_period_terms;
-    term.get_spatial_terms = @get_spatial_terms;
-    term.get_season_anomaly = @get_season_anomaly;
+
+term.get_all_terms = @get_all_terms;
+
+term.get_depend_terms = @get_depend_terms;
+
+term.get_lagged_terms = @get_lagged_terms;
+term.get_period_terms = @get_period_terms;
+term.get_spatial_terms = @get_spatial_terms;
+term.get_extreme_terms = @get_extreme_terms;
+
+term.get_season_anomaly = @get_season_anomaly;
+
 end
 
 function [depend_terms,...
@@ -18,29 +32,24 @@ function [depend_terms,...
                                      lat,lon,...
                                      Slen,...
                                      nAnnual,nSeasonal,day_lag)
-%                           
-% exclude leap day of leap year
-% 
-% Parameters:
-% __________
-% - data_all: shape as [time,n_feature]
-% - startDate: start date of the data
-% - lat/lon:
-% - Slen:
-% - nAnnual/nSeasonal
-% - day_lag
-%
-% Attributes:
-% __________
-% - depend_terms:
-% - lagged_terms:
-% - period_terms:
-% - spatial_terms:
-% - varagout:
-    % - annual_terms:
-    % - season_terms:
-    % - unleap_day:
-    % - jd:
+                         
+% """exclude leap day of leap year
+ 
+% Arguments:
+%    data_all (N_time,Nlon,Nlat) -- input dataset
+%    startDate -- start date of input dataset
+%    lat/lon -- latitude and longitude index
+%    Slen -- index for spatial terms, which was constructed 
+%            by using data in Slen x Slen square
+%    nAnnual,nSeasonal -- index for annual/season terms
+%    day_lag -- 
+
+% Returns:
+%    varargout: annual_terms --
+%               season_terms --
+%               unleap_day -- index of unleap day of year.
+%               jd -- index of day of year with excluding leap day.
+% """
     
 % set data
 [data_pixel,unleap_day,jd] = remove_leap_day(data_all,startDate,lat,lon);
@@ -60,36 +69,29 @@ if nargout>4; varargout{1} = annual_terms; end
 if nargout>5; varargout{2} = season_terms; end
 if nargout>6; varargout{3} = unleap_day; end
 if nargout>7; varargout{4} = jd; end
-
 end
 
 function depend_terms = get_depend_terms(data,day_lag)
-%
-% get dependent terms of input array
+
+% """get dependent terms of input array
 % ***attention: only use for our dataframe.(see main.m)
+% """
 
 depend_terms = data(day_lag+1:end);
-    
 end
 
 function [data_,unleap_day,jd] = ...
           remove_leap_day(data,startDate,lat,lon)
-%
-% exclude leap day of leap year
+
+% """exclude leap day of leap year
 % 
-% Parameters:
-% __________
-% - data: shape as [time,n_feature]
-% - startDate: start date of the data
-% - lat/lon:
-%
-% Attributes:
-% __________
-% - data_: data with excluding leap day.
-% - unleap_day: index of unleap day of year.
-% - jd: index of day of year with excluding leap day.
-% 
+% Returns:
+%   data_ -- data with excluding leap day.
+%   unleap_day -- index of unleap day of year.
+%   jd -- index of day of year with excluding leap day.
+
 % ***attention: only for Date type like 'yyyy-mm-dd'
+% """
 
 % specific data
 data = data(:,lon,lat);
@@ -111,18 +113,9 @@ end
 
 function lagged_terms = ...
          get_lagged_terms(data,day_lag)
-%
-% use extreme index, spatial homeheterogeneity, surface pressure etc.
-% to construct X(t-1),X(t-2),...,X(t-dayLag);
-%
-% Parameters:
-% __________
-% - data: shape as [time,n_feature]
-% - day_lag: lagged day length
-%
-% Attributes:
-% __________
-% - lagged_terms: shape as [time,day_lag]
+
+% """use extreme index, spatial homeheterogeneity, surface pressure etc.
+% to construct X(t-1),X(t-2),...,X(t-dayLag);"""
 
 % size of input data
 [~,y] = size(data);
@@ -136,29 +129,15 @@ for i = 0:day_lag-1
         lagged_terms(:,y*i+1:y*(i+1)) = data(i+1:end-(day_lag-i),:);
     end
 end
-
 end
 
 function [period_terms,annualTerm,seasTerm] = ...
          get_period_terms(data,...
                           jd,...
                           nAnnual,nSeasonal,day_lag)
-%     
-% Construct periodic terms using Fourier series.
-% use method from Tuttle and Savicci,2016,Science.
-% 
-% Parameters:
-% __________
-% - nAnnual: 
-% - nSeasonal:
-% - jd:
-% - data:
-%
-% Attributes:
-% __________
-% - period_terms:
-% - annualTerm:
-% - seasTerm:
+    
+% """Construct periodic terms using Fourier series.
+% use method from Tuttle and Savicci,2016,Science."""
 
 % size
 [N,~] = size(data);
@@ -230,26 +209,11 @@ annualTerm(end-day_lag+1:end,:) = [];
 seasTerm(1:day_lag,:) = [];
 end
 
-
 function spatial_terms = ...
          get_spatial_terms(data,Slen,lat,lon,jd,day_lag)
-%
-% get parameters of around pixels, named square. 
-% square must be single number
-%
-% Parameters: 
-% __________
-% - data: data size as [time,lon,lat] 
-%       *** different data mentioned before.
-% - Slen: spatial size of the pixels. such as 3x3, i.e., Slen=3
-% - lat/lon: selected lat and lon of target pixel
-%
-% Attributes:
-% __________
-% - spatial_terms: spatial terms of target pixel.
-%                  contains original parameters, maximum-minimun, variance.
-%
-% ***attention: could add other spatial terms, such as maximum.
+
+% """get parameters of around pixels, named square. 
+% square must be single number"""
 
 if mod(Slen,2)==1
     % get size of data, as [time,lon,lat]
@@ -288,14 +252,13 @@ if mod(Slen,2)==1
     end
 else
     'square of spatial terms must be odd number'
-end
-   
+end 
 end
 
 function extreme_terms = ...
-         get_exterme_terms(data,lat,lon)
+         get_extreme_terms(data,lat,lon)
      
-'Need improved'
+disp(TODO:'Need improved')
      
 data_pixel = data(:,lon,lat);
 data_index = quantile(data_pixel,[0.01,0.05,0.95,0.99]);
@@ -305,22 +268,6 @@ data_index = quantile(data_pixel,[0.01,0.05,0.95,0.99]);
 %     extremeIndex(ii,:) = [max(JJ),min(JJ),max(JJ)-min(JJ),std(JJ)...
 %         ,length(find(JJ>AA(3))),length(find(JJ>AA(4)))...
 %         max(diff([1,find(JJ<0.1)',24]))-1,max([1,find(JJ>0.1)',24])-1];
-% elseif length(find(JJ<0.1))==0
-%     extremeIndex(ii,:,i,j) = [max(JJ),min(JJ),max(JJ)-min(JJ),std(JJ)...
-%         ,length(find(JJ>AA(3))),length(find(JJ>AA(4)))...
-%         24,0];
-% elseif length(find(JJ>0.1))==0
-%     extremeIndex(ii,:,i,j) = [max(JJ),min(JJ),max(JJ)-min(JJ),std(JJ)...
-%         ,length(find(JJ>AA(3))),length(find(JJ>AA(4)))...
-%         0,24];
-% elseif length(find(JJ<0.1))==1
-%     extremeIndex(ii,:,i,j) = [max(JJ),min(JJ),max(JJ)-min(JJ),std(JJ)...
-%         ,length(find(JJ>AA(3))),length(find(JJ>AA(4)))...
-%         max([find(JJ<0.1)-1,24-find(JJ<0.1)]),1];
-% elseif length(find(JJ>0.1))==1
-%     extremeIndex(ii,:,i,j) = [max(JJ),min(JJ),max(JJ)-min(JJ),std(JJ)...
-%         ,length(find(JJ>AA(3))),length(find(JJ>AA(4)))...
-%         1,max([find(JJ>0.1)-1,24-find(JJ>0.1)])];
 % end
 
 end
@@ -328,20 +275,18 @@ end
 function [season_anomaly,varargout] = get_season_anomaly...
                                       (maxseasterms,seasmod,X,AICPEN)
 
+% """seasonal anomaly by method from Tuttle and Savincci[1]
 %
-% seasonal anomaly by method from Tuttle and Savincci[1]
+% Arguments:
+%   maxseasterms -- 
+%   seasmod -- seasonal terms constructed by get_period_terms()
+%   X -- target input array
+%   AICPEN --
 %
-% Parameters: 
-% __________
-% - maxseasterms: 
-% - seasmod: seasonal terms constructed by get_period_terms()
-% - X: target input array
-% - AICPEN:
-%
-% Attributes:
-% __________
-% - season_anomaly: input array removed seasonal average,
-%
+% Returns:
+%   season_anomaly -- input array removed seasonal average,
+% """
+
 N = numel(X);
 % index for all possible regression
 maxind_S = 2.^(maxseasterms)-1;
