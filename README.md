@@ -5,11 +5,7 @@ Nonlinear Granger causality framework Version 1.0
 
 NGCF is a causal time series MATLAB package. It's a method to identify the causal relationship between two variables (e.g.,surface soil moisture and precipitation.) 
 
-## Difference of linear and nonlinear Granger causality
-
-## Procedure
-
-## Code structure
+## Test
 
 ## User Agreement
 
